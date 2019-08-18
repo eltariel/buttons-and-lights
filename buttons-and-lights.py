@@ -1,99 +1,30 @@
-#!/usr/bin/env python3
+#!/usr/bin/python3
 
 import atexit
 import time
-from spidev import SpiDev
-from gpiozero import Button
 
+import hid
+import keys
+import leds
 
-START_OF_FRAME = 0xE0
-
-class Pixel:
-    def __init__(self, n):
-        #self.brightness = 0x1F
-        self.brightness = 0x03
-        self.n = n
-        self.buf = [START_OF_FRAME | self.brightness, 0, 0, 0]
-
-    def set(self, r, g, b):
-        self.buf = [START_OF_FRAME | self.brightness, b, g, r]
-
-    def get(self):
-        return (self.buf[1], self.buf[2], self.buf[3])
-
-    def raw(self):
-        return self.buf
-
-class Lights:
-    def __init__(self, keymap):
-        self.spi = SpiDev()
-        self.spi.open(0, 0)
-        self.spi.max_speed_hz = 1000000
-
-        self.pixels = [Pixel(n) for n in range(len(keymap))]
-        self.mapping = [k['led'] for k in keymap]
-
-        atexit.register(self._on_exit)
-
-    def set_pixel(self, index, r, g, b):
-        pixel = self.pixels[self.mapping[index]]
-        pixel.set(r, g, b);
-
-    def clear(self):
-        for p in self.pixels:
-            p.set(0, 0, 0)
-
-    def show(self):
-        buf = [0x00 for _ in range(8)]
-        for p in self.pixels:
-            buf += p.raw()
-
-        buf += [0xFF for _ in range(8)]
-        self.spi.xfer2(buf)
-
-    def _on_exit(self):
-        self.clear()
-        self.show()
-
-
-class Key:
-    def __init__(self, pin):
-        self.button = Button(pin)
-        self.button.when_pressed = self._handler
-        self.button.when_released = self._handler
-        self.button.when_held = self._handler
-        
-        self.handlers = []
-
-    def add_handler(self, handler):
-        self.handlers.append(handler)
-
-    def _handler(self, button):
-        for h in self.handlers:
-            h(button)
-
-            
-class Keypad:
-    def __init__(self, keymap):
-        self.keys = [Key(k['gpio']) for k in keymap]
-
-    def add_handler(self, key, handler):
-        self.keys[key].add_handler(handler)
+gadget = hid.HidGadget('/dev/hidg1')
+nkro_report = hid.HidBitmapReport(gadget, 1+31)#, report_id=1)
 
 keymap = [
-        {'gpio':17, 'led':3, 'key_code':None, 'handler':None},
-        {'gpio':27, 'led':7 },
-        {'gpio':23, 'led':11},
-        {'gpio':22, 'led':2 },
-        {'gpio':24, 'led':6 },
-        {'gpio': 5, 'led':10},
-        {'gpio': 6, 'led':1 },
-        {'gpio':12, 'led':5 },
-        {'gpio':13, 'led':9 },
-        {'gpio':20, 'led':0 },
-        {'gpio':16, 'led':4 },
-        {'gpio':26, 'led':8 }
+        {'gpio':17, 'led':3 , 'key_code':0x04, 'hid_report':nkro_report},
+        {'gpio':27, 'led':7 , 'key_code':0x05, 'hid_report':nkro_report, 'handler':None },
+        {'gpio':23, 'led':11, 'key_code':0x06, 'hid_report':nkro_report},
+        {'gpio':22, 'led':2 , 'key_code':0x07, 'hid_report':nkro_report},
+        {'gpio':24, 'led':6 , 'key_code':0x08, 'hid_report':nkro_report},
+        {'gpio': 5, 'led':10, 'key_code':0x09, 'hid_report':nkro_report},
+        {'gpio': 6, 'led':1 , 'key_code':0x0A, 'hid_report':nkro_report},
+        {'gpio':12, 'led':5 , 'key_code':0x0B, 'hid_report':nkro_report},
+        {'gpio':13, 'led':9 , 'key_code':0x0C, 'hid_report':nkro_report},
+        {'gpio':20, 'led':0 , 'key_code':0x0D, 'hid_report':nkro_report},
+        {'gpio':16, 'led':4 , 'key_code':0x0E, 'hid_report':nkro_report},
+        {'gpio':26, 'led':8 , 'key_code':0x0F, 'hid_report':nkro_report}
 ]
+
 
 def key_int_handler(keynum):
     def h(button):
@@ -105,7 +36,7 @@ def key_int_handler(keynum):
             print("Button {} released".format(keynum))
     return h
 
-k = Keypad(keymap)
+k = keys.Keypad(keymap)
 k.add_handler(0, key_int_handler(0))
 k.add_handler(1, key_int_handler(1))
 k.add_handler(2, key_int_handler(2))
@@ -119,7 +50,7 @@ k.add_handler(9, key_int_handler(9))
 k.add_handler(10, key_int_handler(10))
 k.add_handler(11, key_int_handler(11))
 
-l = Lights(keymap)
+l = leds.Lights(keymap)
 l.set_pixel( 0, 0xFF, 0xFF, 0xFF)
 l.set_pixel( 1, 0x00, 0x00, 0x00)
 l.set_pixel( 2, 0x00, 0x00, 0x00)
