@@ -1,0 +1,11 @@
+[Unit]
+Description=Initialise USB gadget
+After=network.target
+ 
+[Service]
+Type=oneshot
+ExecStart=/home/ellie/buttons-and-lights/init-usb-gadgets.sh
+RemainAfterExit=yes
+ 
+[Install]
+WantedBy=multi-user.target
