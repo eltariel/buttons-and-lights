@@ -29,9 +29,6 @@ class Key:
         if key_code is not None and hid_report is not None:
             self.handlers.append(self._generate_key_handler(key_code, hid_report))
 
-        if handler is not None:
-            self.handlers.append(handler)
-
     def add_handler(self, handler):
         """
         Adds a handler to the key.
