@@ -69,7 +69,6 @@ def type_string(word, report):
             for c in word:
                 keycode = keycodes[c.upper()]
                 if c.isupper():
-                    print("shifty")
                     report.press(keycodes["LEFTSHIFT"])
                     report.send()
                 report.press(keycode)
