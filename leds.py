@@ -105,11 +105,12 @@ class Lights:
         :param brightness: Global brightness value.
         :param index: Optional LED to address. If None, sets brightness for the whole string.
         """
+        b = round(brightness)
         if index is None:
             for p in self.pixels:
-                p.set_brightness(brightness)
+                p.set_brightness(b)
         else:
-            self.get_pixel(index).set_brightness(brightness)
+            self.get_pixel(index).set_brightness(b)
 
     def get_pixel(self, index):
         """

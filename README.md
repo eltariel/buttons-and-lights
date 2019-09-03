@@ -1,4 +1,4 @@
-# Buttons and Lights
+# Not Just A Keypad
 Python interface for GPIO keypads and APA102 RGB LEDs. Inspired by the Pimoroni Keybow.
 
 # Requirements
@@ -11,7 +11,7 @@ Python interface for GPIO keypads and APA102 RGB LEDs. Inspired by the Pimoroni 
 As root:
 
     ./init-usb-gadget.sh
-    python3 buttons-and-lights.py
+    python3 njak.py
 
 
 ## Installation
@@ -23,10 +23,10 @@ Currently a bit messy, you'll need to do all of this by hand.
 - enable and start the services:
 
       systemctl daemon-reload
-      systemctl enable usb-gadget.service
-      systemctl start usb-gadget.service
-      systemctl enable buttons-and-lights.service
-      systemctl start buttons-and-lights.service
+      systemctl enable njak-usb-gadget.service
+      systemctl start njak-usb-gadget.service
+      systemctl enable njak.service
+      systemctl start njak.service
       
 - configure static USB Ethernet gadget IP
 - setup dnsmasq for dhcp
@@ -34,10 +34,29 @@ Currently a bit messy, you'll need to do all of this by hand.
 - systemd service for launching python script
 
 # Key Mapping
-TODO:
+## Default keys
+The initial mapping assumes 12 keys in a 4x3 grid:
 
-- currently, just mess with buttons-and-lights.py
-- future: look into dynamic reloading python magic?
+    k   -   m
+    g   h   i
+    d   e   f
+    !   b   c
+
+All of the keys send the appropriate HID code for that letter, except for '-' (top middle) which does nothing, and
+'!' (bottom left) which reloads the behaviours module.
+
+## Editing behaviours
+The key mappings and other behaviours are specified in behaviours.py. This is a regular python module, with a few notable things:
+
+- `behaviours.scancodes` is (currently) used to define the key mapping at initial startup. This is a
+  list of integers, where each entry is the HID usage to send for the key at that index. If it's `None` then
+  no keypress event occurs.
+- `behaviours.init(key_pad, led_pad)` is called once after each time the behaviours are reloaded.
+- `behaviours.loop(key_pad, led_pad)` is called in an infinite loop after init completes.
+
+This will likely change again at some point.
+
 
 # LED magic
+TODO
 

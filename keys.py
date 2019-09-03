@@ -25,27 +25,36 @@ class Key:
         self.button.when_released = self._handler
         self.button.when_held = self._handler
         
-        self.handlers = []
+        self.keycode = key_code
+        self.hid_report = hid_report
+
         if key_code is not None and hid_report is not None:
-            self.handlers.append(self._generate_key_handler(key_code, hid_report))
+            self.handler = self._generate_key_handler(key_code, hid_report)
 
     def add_handler(self, handler):
         """
         Adds a handler to the key.
 
-        If a handler already exists, this handler will be called *after* the existing one.
+        If a handler already exists, this handler will *replace* the existing one.
 
         :param handler: handler function to call. Should take a single argument which is passed the GPIO button.
         """
         if handler is not None:
-            self.handlers.append(handler)
+            self.handler = handler
+
+    def set_keycode(self, key_code, hid_report=None):
+        """
+        Sets the keycode sent by the key.
+
+        :param keycode: Key to send.
+        :param report: Optional HID report to use. Keeps existing report if None.
+        """
+        if keycode is not None and hid_report is not None:
+            self.handler = self._generate_key_handler(key_code, hid_report)
 
     def _handler(self, button):
         if self.handler is not None:
             self.handler(button)
-
-        for h in self.handlers:
-            h(button)
 
     @staticmethod
     def _generate_key_handler(key_code, hid_report):

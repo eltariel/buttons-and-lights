@@ -1,12 +1,12 @@
 #!/bin/bash
 
-usb_gadget_name="not-pibow"
+usb_gadget_name="njak"
 
 usb_idVendor="0x1d6b"  # 0x1d6b = Linux Foundation
 usb_idProduct="0x0104" # 0x0104 = Multifunction Composite Gadget
-usb_iserialnumber="00000000000A"
+usb_iserialnumber="00000000000C"
 usb_imanufacturer="Eltariel"
-usb_iproduct="Keyboard Proxy"
+usb_iproduct="Not Just A Keypad"
 
 scriptdir=$(dirname $0)
 descriptor_dir=$(readlink -f ${scriptdir}/descriptors || true)
@@ -17,7 +17,7 @@ nkro_kbd=$(readlink -f ${descriptor_dir}/ext_hid.bin || true)
 rndis_dev_mac=$(cat ${descriptor_dir}/mac-dev)
 rndis_host_mac=$(cat ${descriptor_dir}/mac-host)
 
-log="not-pibow:"
+log="njak:"
 
 echo "${log} Loading libcomposite"
 modprobe libcomposite || true
@@ -51,7 +51,7 @@ echo MSFT100 > ${gadget}/os_desc/qw_sign
 
 echo "${log} Creating config"
 mkdir -p ${c}/strings/0x409
-echo "Keyboard Proxy and Network" > ${c}/strings/0x409/configuration
+echo "Not Just A Keypad" > ${c}/strings/0x409/configuration
 echo 500 > ${c}/MaxPower
 
 ln -s ${c} ${gadget}/os_desc

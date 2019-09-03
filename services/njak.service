@@ -1,0 +1,11 @@
+[Unit]
+Description=Not Just a Keypad
+After=njak-usb-gadget.service
+
+[Service]
+ExecStart=/usr/bin/python3 /home/ellie/njak/njak.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target
