@@ -12,6 +12,7 @@ import leds
 import behaviours
 import config
 
+
 def key_int_handler(keynum):
     def h(button):
         if button.is_held:
@@ -20,6 +21,7 @@ def key_int_handler(keynum):
             print("Button {} pressed".format(keynum))
         else:
             print("Button {} released".format(keynum))
+
     return h
 
 
@@ -50,7 +52,6 @@ keycodes = {
     "X": 0x1B,
     "Y": 0x1C,
     "Z": 0x1D,
-
     "1": 0x1E,
     "2": 0x1F,
     "3": 0x20,
@@ -61,8 +62,7 @@ keycodes = {
     "8": 0x25,
     "9": 0x26,
     "0": 0x27,
-
-    "LEFTSHIFT": 0xE1
+    "LEFTSHIFT": 0xE1,
 }
 
 
@@ -80,21 +80,24 @@ def type_string(word, report):
                     report.release(keycodes["LEFTSHIFT"])
                 report.release(keycode)
                 report.send()
+
     return h
 
 
-gadget = hid.HidGadget('/dev/hidg1')
-nkro_report = hid.HidBitmapReport(gadget, 1+31, [(0, 248, 1)])  # , report_id=1)
+gadget = hid.HidGadget("/dev/hidg1")
+nkro_report = hid.HidBitmapReport(gadget, 1 + 31, [(0, 248, 1)])  # , report_id=1)
 
 led_map = [l for (l, _) in config.layout]
-keymap = [Key(pin, key_code=scancode, hid_report=nkro_report)
-          for ((_, pin), scancode)
-          in zip(config.layout, behaviours.scancodes)]
+keymap = [
+    Key(pin, key_code=scancode, hid_report=nkro_report)
+    for ((_, pin), scancode) in zip(config.layout, behaviours.scancodes)
+]
 
 key_pad = Keypad(keymap)
 light_pad = leds.Lights(led_map)
 
 reloading = False
+
 
 def reload_config(button):
     global reloading

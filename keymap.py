@@ -28,7 +28,6 @@ keycodes = {
     "X": Keyboard.KEY_X,
     "Y": Keyboard.KEY_Y,
     "Z": Keyboard.KEY_Z,
-
     "1": Keyboard.KEY_1,
     "2": Keyboard.KEY_2,
     "3": Keyboard.KEY_3,
@@ -57,4 +56,5 @@ def type_string(word, report):
                 if c.isupper():
                     report.release(Keyboard.KEY_LEFTSHIFT)
                 report.send()
+
     return h

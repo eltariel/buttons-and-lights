@@ -9,6 +9,7 @@ class Key:
     """
     GPIO pin handler, with HID keycode sending and arbitrary handler methods.
     """
+
     def __init__(self, gpio, key_code=None, hid_report=None, handler=None):
         """
         Set up the key.
@@ -24,7 +25,7 @@ class Key:
         self.button.when_pressed = self._handler
         self.button.when_released = self._handler
         self.button.when_held = self._handler
-        
+
         self.keycode = key_code
         self.hid_report = hid_report
 
@@ -69,6 +70,7 @@ class Key:
                 print("Keycode {} released".format(key_code))
                 hid_report.release(key_code)
                 hid_report.send()
+
         return _handle_key_code
 
 
@@ -78,6 +80,7 @@ class Keypad:
 
     TODO: Make this more useful.
     """
+
     def __init__(self, keys):
         """
         Create this.

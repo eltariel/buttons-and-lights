@@ -13,6 +13,7 @@ class Pixel:
     """
     An individual LED from a chain of APA102 LEDs
     """
+
     def __init__(self, n, brightness=0x00):
         """
         Constructor
@@ -70,6 +71,7 @@ class Lights:
     """
     A collection of APA102 LEDs.
     """
+
     def __init__(self, led_indexes):
         """
         Create the LED controller.
@@ -142,5 +144,3 @@ class Lights:
     def _on_exit(self):
         self.clear()
         self.show()
-
-

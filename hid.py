@@ -9,6 +9,7 @@ class HidBitmapReport:
 
     TODO: This is broken for reports with bitmaps *and* full keys.
     """
+
     def __init__(self, gadget, report_len, ranges, report_id=None):
         """
         Set up a bitmapped key report.
@@ -20,7 +21,9 @@ class HidBitmapReport:
         """
         self.gadget = gadget
         self.report_id = report_id
-        self.chunks = [(start, start + count - 1, offset) for (start, count, offset) in ranges]
+        self.chunks = [
+            (start, start + count - 1, offset) for (start, count, offset) in ranges
+        ]
         self.len = report_len + (0 if report_id is None else 1)
         self._buf = bytearray([0x00 for _ in range(report_len)])
         self._id_offset = 0
@@ -53,10 +56,14 @@ class HidBitmapReport:
         self.gadget.send_report(self._buf)
 
     def _key_to_index(self, key_code):
-        (offset, start) = next(((offset, start)
-                                for (start, end, offset)
-                                in self.chunks
-                                if start <= key_code < end), (None, None))
+        (offset, start) = next(
+            (
+                (offset, start)
+                for (start, end, offset) in self.chunks
+                if start <= key_code < end
+            ),
+            (None, None),
+        )
         if offset is None or start is None:
             print("Unmapped keycode {}".format(key_code))
         else:
@@ -71,6 +78,7 @@ class HidGadget:
 
     TODO: support input reports.
     """
+
     def __init__(self, dev):
         """
         Initialise the HID gadget.
@@ -87,7 +95,6 @@ class HidGadget:
 
         :param report_bytes: byte array to send.
         """
-        with open(self.dev, 'rb+') as gadget:
+        with open(self.dev, "rb+") as gadget:
             print("Attempting to write a HID report: {}".format(report_bytes))
             gadget.write(report_bytes)
-
