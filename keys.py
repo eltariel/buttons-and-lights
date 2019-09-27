@@ -43,15 +43,18 @@ class Key:
         if handler is not None:
             self.handler = handler
 
-    def set_keycode(self, key_code, hid_report=None):
+    def set_keycode(self, keycode, hid_report=None):
         """
         Sets the keycode sent by the key.
 
         :param keycode: Key to send.
         :param report: Optional HID report to use. Keeps existing report if None.
         """
-        if keycode is not None and hid_report is not None:
-            self.handler = self._generate_key_handler(key_code, hid_report)
+        if hid_report is not None:
+            self.hid_report = hid_report
+
+        if keycode is not None and self.hid_report is not None:
+            self.handler = self._generate_key_handler(keycode, self.hid_report)
 
     def _handler(self, button):
         if self.handler is not None:

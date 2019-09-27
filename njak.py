@@ -10,7 +10,7 @@ from keys import Key, Keypad
 import leds
 
 import behaviours
-import config
+from config import Configuration
 
 
 def key_int_handler(keynum):
@@ -84,49 +84,47 @@ def type_string(word, report):
     return h
 
 
-gadget = hid.HidGadget("/dev/hidg1")
-nkro_report = hid.HidBitmapReport(gadget, 1 + 31, [(0, 248, 1)])  # , report_id=1)
+class Njak:
+    def __init__(self, config):
+        self._reloading = False
+        self.config = config
 
-led_map = [l for (l, _) in config.layout]
-keymap = [
-    Key(pin, key_code=scancode, hid_report=nkro_report)
-    for ((_, pin), scancode) in zip(config.layout, behaviours.scancodes)
-]
+        self.keypad = Keypad(config.keymap)
+        self.lightpad = leds.Lights(config.ledmap)
 
-key_pad = Keypad(keymap)
-light_pad = leds.Lights(led_map)
+        self.lightpad.clear()
+        self.lightpad.set_brightness(leds.MAX_BRIGHTNESS / 10)
+        self.lightpad.show()
 
-reloading = False
+        self.behaviour = behaviours.Behaviour(self)
 
-
-def reload_config(button):
-    global reloading
-    if button is None or not button.is_pressed:
-        print("Reload!")
-        reloading = True
-        importlib.reload(config)
-        try:
-            behaviours.init(key_pad, light_pad)
-        except Exception as ex:
-            print("Exception running config.init(): {}".format(ex))
-        keymap[0].add_handler(reload_config)
-        reloading = False
-
-
-reload_config(None)
-
-light_pad.clear()
-light_pad.set_brightness(leds.MAX_BRIGHTNESS / 10)
-light_pad.show()
-
-try:
-    msg = ""
-    while True:
-        if reloading:
+    def loop(self):
+        if self._reloading:
             time.sleep(0.01)
         else:
+            self.behaviour.loop()
+
+    def reload(self, *args, **kwargs):
+        print("Reload!")
+        self._reloading = True
+        importlib.reload(behaviours)
+        try:
+            self.behaviour = behaviours.Behaviour(self)
+        except Exception as ex:
+            print("Exception running config.init(): {}".format(ex))
+        self.keypad.add_handler(0, self.reload)
+        self._reloading = False
+
+
+if __name__ == '__main__':
+    c = Configuration()
+    n = Njak(c)
+
+    try:
+        msg = ""
+        while True:
             try:
-                behaviours.loop(key_pad, light_pad)
+                n.loop()
             except KeyboardInterrupt:
                 raise
             except Exception as ex:
@@ -135,5 +133,5 @@ try:
                     msg = newmsg
                     print(msg)
 
-except KeyboardInterrupt:
-    pass
+    except KeyboardInterrupt:
+        pass

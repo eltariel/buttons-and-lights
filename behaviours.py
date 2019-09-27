@@ -15,9 +15,9 @@ scancodes = [
     Keyboard.KEY_F13,
     Keyboard.KEY_F13,
     Keyboard.KEY_F13,
-    Keyboard.KEY_F13,
-    Keyboard.KEY_F13,
-    Keyboard.KEY_F13,
+    Keyboard.KEY_LEFTSHIFT,
+    Keyboard.KEY_LEFTSHIFT,
+    Keyboard.KEY_LEFTSHIFT,
 ]
 
 
@@ -48,19 +48,23 @@ class ColourCycler:
         self.curr_step %= self.steps
 
 
-cycle = ColourCycler(500, 12, 12)
+class Behaviour:
+    def __init__(self, host):
+        self.host = host
 
+        self.host.lightpad.clear()
+        self.host.lightpad.set_brightness(leds.MAX_BRIGHTNESS / 10)
+        self.host.lightpad.show()
+        
+        self.cycle = ColourCycler(1000, 12, 12)
 
-def init(key_pad, light_pad):
-    global cycle
-    light_pad.clear()
-    light_pad.set_brightness(leds.MAX_BRIGHTNESS / 10)
-    light_pad.show()
+        self.host.keypad.add_handler(0, self.host.reload)
+        for i in range(1, 12):
+            self.host.keypad.keys[i].set_keycode(scancodes[i])
 
-
-def loop(key_pad, light_pad):
-    time.sleep(0.01)
-    for (i, (r, g, b)) in enumerate(cycle.get_step()):
-        light_pad.set_pixel(i, r, g, b)
-    light_pad.show()
-    cycle.next_step()
+    def loop(self):
+        time.sleep(0.01)
+        for (i, (r, g, b)) in enumerate(self.cycle.get_step()):
+            self.host.lightpad.set_pixel(i, r, g, b)
+        self.host.lightpad.show()
+        self.cycle.next_step()
