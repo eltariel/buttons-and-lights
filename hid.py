@@ -71,6 +71,38 @@ class HidBitmapReport:
             (byte, bit) = divmod(pos, 8)
             return byte + offset + self._id_offset, bit
 
+    def key_handler(self, key_code):
+        def _handle_key_code(button, key):
+            if button.is_held:
+                print("Keycode {} held".format(key_code))
+            elif button.is_pressed:
+                print("Keycode {} pressed".format(key_code))
+                self.press(key_code)
+                self.send()
+            else:
+                print("Keycode {} released".format(key_code))
+                self.release(key_code)
+                self.send()
+
+        return _handle_key_code
+
+class BitmapPart:
+    def __init__(self, usage, count, size, offset):
+        self.usage = usage
+        self.count = count
+        self.size = size
+        self.offset = offset
+
+        self._usages = [false for _ in range(count)]
+
+    def set(self, usage):
+        pass
+
+    def clear(self, usage):
+        pass
+
+    def fill_buffer(self, buf):
+        pass
 
 class HidGadget:
     """

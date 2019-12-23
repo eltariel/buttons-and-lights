@@ -4,22 +4,6 @@ import colorsys
 import leds
 from hid_usages import Keyboard
 
-# NOTE: This is upside down!
-scancodes = [
-    None,
-    Keyboard.KEY_F13,
-    Keyboard.KEY_F13,
-    Keyboard.KEY_F13,
-    Keyboard.KEY_F13,
-    Keyboard.KEY_F13,
-    Keyboard.KEY_F13,
-    Keyboard.KEY_F13,
-    Keyboard.KEY_F13,
-    Keyboard.KEY_LEFTSHIFT,
-    Keyboard.KEY_LEFTSHIFT,
-    Keyboard.KEY_LEFTSHIFT,
-]
-
 
 class ColourCycler:
     def __init__(self, steps, leds, lit):
@@ -58,9 +42,28 @@ class Behaviour:
         
         self.cycle = ColourCycler(1000, 12, 12)
 
-        self.host.keypad.add_handler(0, self.host.reload)
-        for i in range(1, 12):
-            self.host.keypad.keys[i].set_keycode(scancodes[i])
+        r = self.host.config.reports[0]
+        self.layers = [
+            [
+                r.key_handler(Keyboard.KEY_KP0),
+                r.key_handler(Keyboard.KEY_KPENTER),
+                r.key_handler(Keyboard.KEY_KP1),
+                r.key_handler(Keyboard.KEY_KP2),
+                r.key_handler(Keyboard.KEY_KP3),
+                r.key_handler(Keyboard.KEY_KP4),
+                r.key_handler(Keyboard.KEY_KP5),
+                r.key_handler(Keyboard.KEY_KP6),
+                r.key_handler(Keyboard.KEY_KP7),
+                r.key_handler(Keyboard.KEY_KP8),
+                r.key_handler(Keyboard.KEY_KP9),
+            ],
+            [r.key_handler(Keyboard.KEY_F13) for _ in range(11)]
+        ]
+        self.host.keypad.add_layers(self.layers)
+
+        #for (i, handler) in enumerate(self.layers[0]):
+        #    if handler is not None:
+        #        self.host.keypad.add_handler(i + 1, 0, handler)
 
     def loop(self):
         time.sleep(0.01)

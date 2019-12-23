@@ -34,4 +34,6 @@ class Configuration:
         self.reports = [hid.HidBitmapReport(self.gadget, 32, [(0, 248, 1)])]
 
         self.ledmap = [l for (l, _) in self.layout]
-        self.keymap = [Key(pin, hid_report=self.reports[0]) for (_, pin) in self.layout]
+        self.keymap = [Key(i, pin, hid_report=self.reports[0])
+                for (i, (_, pin))
+                in enumerate(self.layout)]
