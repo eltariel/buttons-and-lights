@@ -61,13 +61,12 @@ class Behaviour:
         ]
         self.host.keypad.add_layers(self.layers)
 
-        #for (i, handler) in enumerate(self.layers[0]):
-        #    if handler is not None:
-        #        self.host.keypad.add_handler(i + 1, 0, handler)
-
     def loop(self):
         time.sleep(0.01)
         for (i, (r, g, b)) in enumerate(self.cycle.get_step()):
-            self.host.lightpad.set_pixel(i, r, g, b)
+            if i == self.host.keypad.current_layer + 1:
+                self.host.lightpad.set_pixel(i, 0, 0, 0)
+            else:
+                self.host.lightpad.set_pixel(i, r, g, b)
         self.host.lightpad.show()
         self.cycle.next_step()
