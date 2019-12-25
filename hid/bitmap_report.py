@@ -3,7 +3,7 @@ Classes to mess with HID (USB key etc) output.
 """
 
 
-class HidBitmapReport:
+class BitmapReport:
     """
     HID Bitmapped key report.
 
@@ -86,47 +86,3 @@ class HidBitmapReport:
 
         return _handle_key_code
 
-class BitmapPart:
-    def __init__(self, usage, count, size, offset):
-        self.usage = usage
-        self.count = count
-        self.size = size
-        self.offset = offset
-
-        self._usages = [false for _ in range(count)]
-
-    def set(self, usage):
-        pass
-
-    def clear(self, usage):
-        pass
-
-    def fill_buffer(self, buf):
-        pass
-
-class HidGadget:
-    """
-    HID Gadget, for sending reports to the host.
-
-    TODO: support input reports.
-    """
-
-    def __init__(self, dev):
-        """
-        Initialise the HID gadget.
-
-        :param dev: the device path to use, e.g. /dev/hidg0
-        """
-        self.dev = dev
-
-    def send_report(self, report_bytes):
-        """
-        Sends a report.
-
-        This is intended to be used through a HidReport object, but can be used for arbitrary data.
-
-        :param report_bytes: byte array to send.
-        """
-        with open(self.dev, "rb+") as gadget:
-            print("Attempting to write a HID report: {}".format(report_bytes))
-            gadget.write(report_bytes)

@@ -5,7 +5,8 @@ Options:
     layout: list of (led position, gpio pin) for each key. io_mapping[n] represents the nth key.
 """
 
-import hid
+from hid.bitmap_report import *
+from hid.gadget import *
 import keys
 from keys import Key
 import leds
@@ -30,10 +31,10 @@ layout = [
 class Configuration:
     def __init__(self):
         self.layout = layout
-        self.gadget = hid.HidGadget("/dev/hidg1")
-        self.reports = [hid.HidBitmapReport(self.gadget, 32, [(0, 248, 1)])]
+        self.gadget = HidGadget("/dev/hidg1")
+        self.reports = [BitmapReport(self.gadget, 32, [(0, 248, 1)])]
 
         self.ledmap = [l for (l, _) in self.layout]
-        self.keymap = [Key(i, pin, hid_report=self.reports[0])
+        self.keymap = [Key(i, pin)
                 for (i, (_, pin))
                 in enumerate(self.layout)]

@@ -10,13 +10,11 @@ class Key:
     GPIO pin handler, with HID keycode sending and arbitrary handler methods.
     """
 
-    def __init__(self, num, gpio, key_code=None, hid_report=None, handler=None):
+    def __init__(self, num, gpio, handler=None):
         """
         Set up the key.
 
         :param gpio: GPIO pin to bind to.
-        :param key_code: Optional key code to send when the key is pressed. Needs hid_report defined too.
-        :param hid_report: HID report to send key_code
         :param handler: Optional handler method.
         """
         self.gpio = gpio
@@ -26,12 +24,6 @@ class Key:
         self.button.when_pressed = self._handler
         self.button.when_released = self._handler
         self.button.when_held = self._handler
-
-        self.keycode = key_code
-        self.hid_report = hid_report
-
-        if key_code is not None and hid_report is not None:
-            self.handler = self._generate_key_handler(key_code, hid_report)
 
     def add_handler(self, handler):
         """
@@ -71,23 +63,11 @@ class Keypad:
         for i in range(1,12):
             self.keys[i].add_handler(self._key_handler)
 
-    def add_handler(self, key, layer, handler):
-        """
-        Add a handler to the key at a given index.
-
-        :param key: Key index.
-        :param handler: handler to add.
-        """
-        self.keys[key].add_handler(handler)
-
     def add_layers(self, layers):
         self.layers = layers
 
     def select_layer(self, layer_index):
         self.current_layer = self.layers[layer_index]
-
-    def _button_handler(self, button, key):
-        self.current_layer.handler[(row, column)](button, key)
 
     def _layer_button_handler(self, button, key):
         if button.is_held:
