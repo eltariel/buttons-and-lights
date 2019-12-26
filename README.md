@@ -63,8 +63,9 @@ Switch between layers by holding key 0 and then pressing the key corresponding t
 representing the selected layer will go dark.
 
 Default layers:
-0: Keys 0 - 9 and enter
-1: Every key is F13. I use it for Discord PTT :P
+
+0. Keys 0 - 9 and enter
+1. Every key is F13. I use it for Discord PTT :P
 
 
 ## Future:
