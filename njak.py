@@ -1,17 +1,11 @@
 #!/usr/bin/python3
 
-import importlib
-import atexit
 import time
-import colorsys
-
-import hid
-from hid.usages import Keyboard
-from keys import Key, Keypad
-import leds
-
 import colours
+import leds
 from config import Configuration
+from hid.usages import Keyboard
+from keys import Keypad
 
 
 class Njak:
@@ -27,29 +21,32 @@ class Njak:
 
         self.cycle = colours.ColourCycler(1000, 12, 12)
 
+        l1 = [
+            Keyboard.KEY_KP0,
+            Keyboard.KEY_KPENTER,
+            Keyboard.KEY_KP1,
+            Keyboard.KEY_KP2,
+            Keyboard.KEY_KP3,
+            Keyboard.KEY_KP4,
+            Keyboard.KEY_KP5,
+            Keyboard.KEY_KP6,
+            Keyboard.KEY_KP7,
+            Keyboard.KEY_KP8,
+            Keyboard.KEY_KP9
+        ]
+
         r = self.config.reports[0]
         self.layers = [
-            [
-                r.key_handler(Keyboard.KEY_KP0),
-                r.key_handler(Keyboard.KEY_KPENTER),
-                r.key_handler(Keyboard.KEY_KP1),
-                r.key_handler(Keyboard.KEY_KP2),
-                r.key_handler(Keyboard.KEY_KP3),
-                r.key_handler(Keyboard.KEY_KP4),
-                r.key_handler(Keyboard.KEY_KP5),
-                r.key_handler(Keyboard.KEY_KP6),
-                r.key_handler(Keyboard.KEY_KP7),
-                r.key_handler(Keyboard.KEY_KP8),
-                r.key_handler(Keyboard.KEY_KP9),
-            ],
+            [r.key_handler(key) for key in l1],
             [r.key_handler(Keyboard.KEY_F13) for _ in range(11)]
         ]
-        self.keypad.add_layers(self.layers)
+        self.keypad.add_layer(1, self.layers[0])
+        self.keypad.add_layer(2, self.layers[1])
 
     def loop(self):
         time.sleep(0.01)
         for (i, (r, g, b)) in enumerate(self.cycle.get_step()):
-            if i == self.keypad.current_layer + 1:
+            if i == self.keypad.current_layer:
                 self.lights.set_pixel(i, 0, 0, 0)
             else:
                 self.lights.set_pixel(i, r, g, b)

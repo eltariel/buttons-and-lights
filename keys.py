@@ -55,16 +55,16 @@ class Keypad:
         :param keys: A list of Keys.
         """
         self._in_layer_select = False
-        self.current_layer = 0
+        self.current_layer = 1
         self.keys = keys
-        self.layers = [[]]
+        self.layers = {}
 
         self.keys[0].add_handler(self._layer_button_handler)
         for i in range(1,12):
             self.keys[i].add_handler(self._key_handler)
 
-    def add_layers(self, layers):
-        self.layers = layers
+    def add_layer(self, layer, handlers):
+        self.layers[layer] = handlers
 
     def select_layer(self, layer_index):
         self.current_layer = self.layers[layer_index]
@@ -84,8 +84,7 @@ class Keypad:
             if button.is_held:
                 pass
             elif button.is_pressed:
-                self.current_layer = key.num - 1
-
+                if key.num in self.layers:
+                    self.current_layer = key.num
         else:
             self.layers[self.current_layer][key.num - 1](button, key)
-
