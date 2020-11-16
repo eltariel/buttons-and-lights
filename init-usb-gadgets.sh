@@ -4,7 +4,7 @@ usb_gadget_name="njak"
 
 usb_idVendor="0x1d6b"  # 0x1d6b = Linux Foundation
 usb_idProduct="0x0104" # 0x0104 = Multifunction Composite Gadget
-usb_iserialnumber="00000000000C"
+usb_iserialnumber="00000000000D"
 usb_imanufacturer="Eltariel"
 usb_iproduct="Not Just A Keypad"
 
@@ -45,28 +45,28 @@ echo ${usb_iserialnumber} > ${gadget}/strings/0x409/serialnumber
 echo ${usb_imanufacturer} > ${gadget}/strings/0x409/manufacturer
 echo ${usb_iproduct}      > ${gadget}/strings/0x409/product
 
-echo 1       > ${gadget}/os_desc/use
-echo 0xCD    > ${gadget}/os_desc/b_vendor_code
-echo MSFT100 > ${gadget}/os_desc/qw_sign
+#echo 1       > ${gadget}/os_desc/use
+#echo 0xCD    > ${gadget}/os_desc/b_vendor_code
+#echo MSFT100 > ${gadget}/os_desc/qw_sign
 
 echo "${log} Creating config"
 mkdir -p ${c}/strings/0x409
 echo "Not Just A Keypad" > ${c}/strings/0x409/configuration
 echo 500 > ${c}/MaxPower
 
-ln -s ${c} ${gadget}/os_desc
+#ln -s ${c} ${gadget}/os_desc
 
-echo "${log} Registering RNDIS"
-mkdir -p ${f}/rndis.0
-# first byte of address must be even
-echo ${rndis_host_mac} > ${f}/rndis.0/host_addr
-echo ${rndis_dev_mac}  > ${f}/rndis.0/dev_addr
-echo 0xEF              > ${f}/rndis.0/class
-echo 0x04              > ${f}/rndis.0/subclass
-echo 0x01              > ${f}/rndis.0/protocol
-echo RNDIS             > ${f}/rndis.0/os_desc/interface.rndis/compatible_id
-echo 5162001           > ${f}/rndis.0/os_desc/interface.rndis/sub_compatible_id
-ln -s ${f}/rndis.0 ${c}
+#echo "${log} Registering RNDIS"
+##mkdir -p ${f}/rndis.0
+## first byte of address must be even
+#echo ${rndis_host_mac} > ${f}/rndis.0/host_addr
+#echo ${rndis_dev_mac}  > ${f}/rndis.0/dev_addr
+#echo 0xEF              > ${f}/rndis.0/class
+#echo 0x04              > ${f}/rndis.0/subclass
+#echo 0x01              > ${f}/rndis.0/protocol
+#echo RNDIS             > ${f}/rndis.0/os_desc/interface.rndis/compatible_id
+#echo 5162001           > ${f}/rndis.0/os_desc/interface.rndis/sub_compatible_id
+#ln -s ${f}/rndis.0 ${c}
 
 echo "${log} Registering HID using ${boot_kbd} for Boot Keyboard Descriptor"
 mkdir -p ${f}/hid.0
@@ -84,19 +84,19 @@ echo 32         > ${f}/hid.1/report_length
 cat ${nkro_kbd} > ${f}/hid.1/report_desc
 ln -s ${f}/hid.1 ${c}
 
-echo "${log} Registering MIDI"
-mkdir -p ${f}/midi.0
-ln -s ${f}/midi.0 ${c}
+#echo "${log} Registering MIDI"
+#mkdir -p ${f}/midi.0
+#ln -s ${f}/midi.0 ${c}
 
-#echo "${log} Registering ECM"
-#mkdir -p ${f}/ecm.0
-#echo ${ecm_dev_mac}  > ${f}/ecm.0/host_addr
-#echo ${ecm_host_mac} > ${f}/ecm.0/dev_addr
-#ln -s ${f}/ecm.0 ${c}
+echo "${log} Registering NCM"
+mkdir -p ${f}/ncm.0
+echo ${ncm_dev_mac}  > ${f}/ncm.0/host_addr
+echo ${ncm_host_mac} > ${f}/ncm.0/dev_addr
+ln -s ${f}/ncm.0 ${c}
 
-echo "${log} Registering ACM"
-mkdir -p ${f}/acm.0
-ln -s ${f}/acm.0 ${c}
+#echo "${log} Registering ACM"
+#mkdir -p ${f}/acm.0
+#ln -s ${f}/acm.0 ${c}
 
 echo "${log} Enabling gadget"
 ls /sys/class/udc > ${gadget}/UDC
