@@ -8,11 +8,13 @@ from spidev import SpiDev
 START_OF_FRAME = 0xE0
 MAX_BRIGHTNESS = 0x1F
 
-
 class Pixel:
     """
     An individual LED from a chain of APA102 LEDs
     """
+
+    PIXEL_OFF = bytearray([START_OF_FRAME, 0, 0, 0])
+
 
     def __init__(self, n, brightness=0x00):
         """
@@ -23,7 +25,11 @@ class Pixel:
         """
         self.brightness = brightness & ~START_OF_FRAME
         self.n = n
-        self.buf = bytearray([START_OF_FRAME, 0, 0, 0])
+        self.buf = bytearray([START_OF_FRAME, 0xFF, 0xFF, 0xFF])
+        self.on = False
+
+    def turn_off(self):
+        self.on = False
 
     def set(self, r, g, b, brightness=None):
         """
@@ -36,6 +42,7 @@ class Pixel:
         """
         if brightness is not None:
             self.brightness = brightness & ~START_OF_FRAME
+            self.on = self.brightness > 0
             self.buf[0] = START_OF_FRAME | self.brightness
         self.buf[1] = b
         self.buf[2] = g
@@ -52,11 +59,11 @@ class Pixel:
 
     def get(self):
         """
-        Gets the current RGB value of the pixel.
+        Gets the current RGB value and brightness of the pixel.
 
-        :return: Tuple: (R, G, B)
+        :return: Tuple: (R, G, B, brightness)
         """
-        return self.buf[1], self.buf[2], self.buf[3]
+        return self.buf[3], self.buf[2], self.buf[1], self.brightness
 
     def raw(self):
         """
@@ -64,7 +71,7 @@ class Pixel:
 
         :return: 4 byte buffer.
         """
-        return self.buf
+        return self.buf if self.on else Pixel.PIXEL_OFF
 
 
 class Lights:
@@ -128,7 +135,8 @@ class Lights:
         Blank all LEDs.
         """
         for p in self.pixels:
-            p.set(0, 0, 0)
+            #p.set(0, 0, 0)
+            p.turn_off()
 
     def show(self):
         """
