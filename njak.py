@@ -73,6 +73,7 @@ def button_discovery_data(button_num):
       "pl_not_avail": MQTT_LWT_DEAD,
       "schema": "json",
       "brightness": True,
+      "brightness_scale": leds.MAX_BRIGHTNESS,
       "hs": True,
       "rgb": True,
       "dev": HOMEASSISTANT_DEV_INFO
