@@ -1,0 +1,14 @@
+{
+  "host": "transhouse.local",
+  "port": 1883,
+  "user": "mqtt",
+  "password": "hassio-mqtt",
+  "client_id": "njak_b827eba3d915",
+  "lwt": {
+    "topic": "njak_b827eba3d915/status",
+    "alive": "online",
+    "dead": "offline"
+  },
+  "device_root": "njak",
+  "discovery_root": "homeassistant"
+}

@@ -1,3 +1,7 @@
+njak-mqtt.json
+
+
+### from gitignore.io ###
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

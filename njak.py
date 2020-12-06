@@ -9,7 +9,8 @@ import logging
 import socket
 import paho.mqtt.client as mqtt
 
-from dataclasses import dataclass, asdict
+from pathlib import Path
+from dataclasses import dataclass, asdict, astuple, is_dataclass
 from typing import Tuple, List, Dict, Any
 
 from config import Configuration
@@ -21,20 +22,70 @@ with open("/sys/class/net/wlan0/address") as f:
   MAC_ADDR = f.read().strip().replace(":", "")
 
 HOST_NAME = socket.gethostname()
+DEFAULT_CLIENTID = f"njak_{MAC_ADDR}"
 
-MQTT_HOST = "transhouse.local"
-MQTT_PORT = 1883
-MQTT_USER = "mqtt"
-MQTT_PASS = "hassio-mqtt"
 
-MQTT_CLIENTID = f"njak_{MAC_ADDR}"
-MQTT_LWT_TOPIC = f"{MQTT_CLIENTID}/status"
-MQTT_LWT_ALIVE = "online"
-MQTT_LWT_DEAD = "offline"
+class DataclassJSONEncoder(json.JSONEncoder):
+  def default(self, o):
+    if is_dataclass(o):
+      return asdict(o)
+    return super().default(o)
 
-hass_discovery_topic = f"homeassistant/{{0}}/{MQTT_CLIENTID}/{{1}}/config"
-light_base = f"njak/{MAC_ADDR}/light"
-trigger_base = f"njak/{MAC_ADDR}/triggers"
+
+@dataclass
+class MqttLWT:
+  topic: str = f"{DEFAULT_CLIENTID}/status"
+  alive: str = "online"
+  dead: str = "offline"
+
+
+@dataclass
+class MqttConfig:
+  host: str
+  port: int
+  user: str = None
+  password: str = None
+
+  client_id: str = DEFAULT_CLIENTID
+
+  lwt: MqttLWT = MqttLWT()
+
+  device_root: str = "njak"
+  discovery_root: str = "homeassistant"
+
+  def write(self, cfg_file: Path):
+    with open(cfg_file, "w") as f:
+      json.dump(self, f, cls=DataclassJSONEncoder, indent=2)
+
+  @staticmethod
+  def read(cfg_file: Path):
+    try:
+      with open(cfg_file, "r") as f:
+        c = json.load(f)
+        print(c)
+        l = c.get("lwt")
+        lwt = MqttLWT(l.get("topic"),
+                      l.get("alive"),
+                      l.get("dead")) if l else None
+        cfg = MqttConfig(c["host"],
+                         c["port"],
+                         c.get("user"),
+                         c.get("password"),
+                         c.get("client_id"),
+                         lwt,
+                         c.get("device_root"),
+                         c.get("discovery_root"))
+    except Exception as e:
+      print(f"Load failed, getting default instead ({e!r})")
+      cfg = MqttConfig.default()
+    return cfg
+
+  @staticmethod
+  def default():
+    return MqttConfig("localhost", 1883)
+
+
+mc = MqttConfig.read("njak-mqtt.json")
 
 HOMEASSISTANT_DEV_INFO = {
     "cns": [("mac", MAC_ADDR)],
@@ -48,59 +99,21 @@ HOMEASSISTANT_DEV_INFO = {
 logging.basicConfig(level=logging.DEBUG)
 
 def on_connect(client, userdata, flags, rc):
-  mqttc.subscribe(f"{light_base}/#")
-  mqttc.publish(MQTT_LWT_TOPIC, payload=MQTT_LWT_ALIVE, qos=0, retain=True)
+  mqttc.publish(mc.lwt.topic, payload=mc.lwt.alive, qos=0, retain=True)
 
 
 def on_message(client, userdata, msg):
   print(msg.topic+" "+str(msg.payload))
 
 
-mqttc = mqtt.Client(MQTT_CLIENTID)
+mqttc = mqtt.Client(mc.client_id)
 mqttc.enable_logger()
 mqttc.on_connect = on_connect
 mqttc.on_message = on_message
 
-mqttc.username_pw_set(MQTT_USER, password=MQTT_PASS)
-mqttc.will_set(MQTT_LWT_TOPIC, payload=MQTT_LWT_DEAD, qos=0, retain=True)
-mqttc.connect(MQTT_HOST, MQTT_PORT, keepalive=20)
-
-
-class MqttKeyInfo:
-  def __init__(self, button: int):
-    self._button = button
-    self._button_str = f"{button:02}"
-
-  @property
-  def button(self):
-    return self._button
-
-  @property
-  def button_str(self):
-    return self._button_str
-
-  @property
-  def light_discovery_topic(self):
-    return self._discovery_topic("light", self.button_str)
-
-  def trigger_discovery_topic(self, trigger):
-    return self._discovery_topic("device_automation", f"{self.button_str}_{trigger}")
-
-  @property
-  def light_topic(self):
-    return self._target_topic(f"light/{self.button_str}")
-
-  def trigger_topic_for(self, trigger):
-    return self._target_topic(f"trigger/{self.button_str}/{trigger}")
-
-  def payload_for(self, trigger):
-    return f"{self.button}:{trigger}"
-
-  def _target_topic(self, component_id):
-    return f"njak/{MAC_ADDR}/{component_id}"
-
-  def _discovery_topic(self, component_id, object_id):
-    return f"homeassistant/{component_id}/{MQTT_CLIENTID}/{object_id}/config"
+mqttc.username_pw_set(mc.user, password=mc.password)
+mqttc.will_set(mc.lwt.topic, payload=mc.lwt.dead, qos=0, retain=True)
+mqttc.connect(mc.host, mc.port, keepalive=20)
 
 
 class Discoverable:
@@ -112,18 +125,18 @@ class Discoverable:
     self._log = logging.getLogger(type(self).__name__)
 
   def publish(self):
-    self._log.debug(f"  PUBLISH {self.discovery_topic} --> {json.dumps(self.discovery_payload, indent=2)}")
+    #self._log.debug(f"  PUBLISH {self.discovery_topic} --> {json.dumps(self.discovery_payload, indent=2)}")
     self._client.publish(self.discovery_topic, json.dumps(self.discovery_payload), retain=True)
 
   def unpublish(self):
-    self._log.debug(f"  UNPUBLISH {self.discovery_topic}")
+    #self._log.debug(f"  UNPUBLISH {self.discovery_topic}")
     self._client.publish(self.discovery_topic, None)
 
   def _topic(self, component_id: str) -> str:
     return f"{self.DEVICE_ROOT}/{MAC_ADDR}/{component_id}"
 
   def _discovery_topic(self, component_id: str, object_id: str) -> str:
-    return f"{self.DISCOVERY_ROOT}/{component_id}/{MQTT_CLIENTID}/{object_id}/config"
+    return f"{self.DISCOVERY_ROOT}/{component_id}/{mc.client_id}/{object_id}/config"
 
 
 class MqttTrigger(Discoverable):
@@ -211,14 +224,16 @@ class MqttLight(Discoverable):
 
   @state.setter
   def state(self, value: LightState):
-    self._state = value
-    for l in self._listeners:
-      l(self)
-
-    self.publish_state()
+    if self._state != value:
+      self._state = value
+      for l in self._listeners:
+        l(self)
 
   def set(self, on: bool, brightness: int, color: RGBColor):
     self.state = LightState(on, brightness, color)
+
+  def set_color(self, r, g, b):
+    self.state = LightState(self.state.on, self.state.brightness, RGBColor(r, g, b))
 
   @property
   def discovery_topic(self):
@@ -232,9 +247,9 @@ class MqttLight(Discoverable):
       "unique_id": f"Keybow_{HOST_NAME}_light_{self._btn_str}",
       "cmd_t": "~/set",
       "stat_t": "~/state",
-      "avty_t": MQTT_LWT_TOPIC,
-      "pl_avail": MQTT_LWT_ALIVE,
-      "pl_not_avail": MQTT_LWT_DEAD,
+      "avty_t": mc.lwt.topic,
+      "pl_avail": mc.lwt.alive,
+      "pl_not_avail": mc.lwt.dead,
       "schema": "json",
       "brightness": True,
       "hs": True,
@@ -287,10 +302,6 @@ class MqttLight(Discoverable):
       color = curr_color
 
     self.state = LightState(on, br, color)
-    for l in self._listeners:
-      l(self)
-
-    self.update_state(on, br, color)
 
 
 class Discovery:
@@ -304,6 +315,7 @@ class Discovery:
 
 class LedKey:
   def __init__(self, key, pixel, light, triggers):
+    self._log = logging.getLogger(type(self).__name__)
     self._key = key
     self._pixel = pixel
     self._light = light
@@ -311,7 +323,7 @@ class LedKey:
     
     self._key.add_handler(self._handle_key)
     self._light.add_listener(self._handle_light)
-    self.publish_state()
+    self._light.state = LightState(True, 128, RGBColor(0, 0, 0))
 
     self._light.listen()
 
@@ -319,43 +331,18 @@ class LedKey:
     self._light.publish_state()
 
   def set_color(self, r, g, b):
-    self._light.state = LightState(self._light.state.on, self._light.state.brightness, RGBColor(r, g, b))
+    self._light.set_color(r, g, b)
 
   def _handle_light(self, light: MqttLight):
     state = light.state
 
     br = state.brightness >> 3 # TODO: Make this stay on for low values
-    r, g, b = state.color
+    r, g, b = astuple(state.color)
 
     if state.on:
       self._pixel.set(r, g, b, br)
     else:
       self._pixel.turn_off()
-
-
-  def _handle_message(self, client, userdata, message):
-    p = json.loads(message.payload)
-    print(f"Light command for LED {self.key.num+1:02}: {p}")
-
-    (r, g, b, br) = self._pixel.get()
-
-    br = p.get("brightness")
-    if br is not None:
-      br = br >> 3
-
-    st = p.get("state", "OFF")
-
-    if st == "OFF":
-      self._pixel.turn_off()
-    else:
-      color = p.get("color")
-      if color is not None:
-        r = color.get("r", r)
-        g = color.get("g", g)
-        b = color.get("b", b)
-
-      self._pixel.set(r, g, b, br)
-    self.publish_state()
 
   def _handle_key(self, button, key):
     trigger = "button_short_release"
@@ -386,8 +373,6 @@ class Njak:
       for d in discoverables:
         d.publish()
 
-      info = MqttKeyInfo(k.num + 1)
-      
       pixel = self.lights.get_pixel(k.num)
       self.mqtt_keys += [LedKey(k, pixel, light, triggers)]
 
@@ -403,8 +388,8 @@ class Njak:
 
 
 if __name__ == '__main__':
-  c = Configuration()
-  n = Njak(c)
+  cfg = Configuration()
+  n = Njak(cfg)
 
   mqttc.loop_start()
 
