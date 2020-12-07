@@ -3,6 +3,8 @@ Classes for working with lights.
 """
 
 import atexit
+from typing import List
+
 from spidev import SpiDev
 
 START_OF_FRAME = 0xE0
@@ -16,19 +18,29 @@ class Pixel:
     PIXEL_OFF = bytearray([START_OF_FRAME, 0, 0, 0])
 
 
-    def __init__(self, n, brightness=0x00):
+    def __init__(self, pin, brightness=0x00):
         """
         Constructor
 
-        :param n: LED number. Entirely informational, is not used anywhere.
+        :param pin: 'Pin' number for the LED, i.e. it's physical position in the LED string.
         :param brightness: initial global brightness, defaults to 0 (off). See set_brightness for additional info.
         """
         self.brightness = brightness & ~START_OF_FRAME
-        self.n = n
+        self._pin = pin
         self.buf = bytearray([START_OF_FRAME, 0xFF, 0xFF, 0xFF])
         self.on = False
 
+    @property
+    def pin(self) -> int:
+        """
+        Returns the 'pin' number for the LED, i.e. it's physical position in the LED string.
+        """
+        return self._pin
+
     def turn_off(self):
+        """
+        Turns off the LED while leaving the brightness alone.
+        """
         self.on = False
 
     def set(self, r, g, b, brightness=None):
@@ -79,18 +91,18 @@ class Lights:
     A collection of APA102 LEDs.
     """
 
-    def __init__(self, led_indexes):
+    def __init__(self, pixels: List[Pixel]):
         """
         Create the LED controller.
 
-        :param led_indexes: physical -> logical LED mapping: led_indexes[n] = LED number
+        :param pixels: List of Pixels in logical (key number) order.
         """
         self.spi = SpiDev()
         self.spi.open(0, 0)
         self.spi.max_speed_hz = 1000000
 
-        self.pixels = [Pixel(n) for n in range(len(led_indexes))]
-        self.mapping = led_indexes
+        self.pixels_logical = pixels
+        self.pixels_physical = sorted(pixels, key=lambda x: x.n)
 
         atexit.register(self._on_exit)
 
@@ -104,8 +116,7 @@ class Lights:
         :param b: Blue
         :param brightness: Optional brightness value
         """
-        pixel = self.get_pixel(index)
-        pixel.set(r, g, b, brightness)
+        self.pixels_logical[index].set(r, g, b, brightness)
 
     def set_brightness(self, brightness, index=None):
         """
@@ -116,25 +127,25 @@ class Lights:
         """
         b = round(brightness)
         if index is None:
-            for p in self.pixels:
+            for p in self.pixels_logical:
                 p.set_brightness(b)
         else:
-            self.get_pixel(index).set_brightness(b)
+            self.pixels_logical[index].set_brightness(b)
 
     def get_pixel(self, index):
         """
         Gets the pixel at a given index.
 
-        :param index: The index of the pixel.
+        :param index: The index (1-based) of the pixel.
         :return: The pixel.
         """
-        return self.pixels[self.mapping[index]]
+        return self.pixels_logical[index - 1]
 
     def clear(self):
         """
         Blank all LEDs.
         """
-        for p in self.pixels:
+        for p in self.pixels_logical:
             #p.set(0, 0, 0)
             p.turn_off()
 
@@ -143,7 +154,7 @@ class Lights:
         Send the current pixel data to the LEDs
         """
         buf = [0x00 for _ in range(8)]
-        for p in self.pixels:
+        for p in self.pixels_physical:
             buf += p.raw()
 
         buf += [0xFF for _ in range(8)]

@@ -4,37 +4,48 @@ IO Mapping for buttons and lights.
 Options:
     layout: list of (led position, gpio pin) for each key. io_mapping[n] represents the nth key.
 """
+from dataclasses import dataclass
+from functools import lru_cache
 
-from hid.bitmap_report import *
-from hid.gadget import *
-import keys
-from keys import Key
-import leds
+from hardware.keys import Key
+from hardware.leds import Pixel, Lights
+
+
+@dataclass
+class KeyCfg:
+    key_number: int
+    led_position: int
+    key_pin: int
+
+    @lru_cache
+    @property
+    def key(self) -> Key:
+        return Key(self.key_number, self.key_pin)
+
+    @lru_cache
+    @property
+    def pixel(self) -> Pixel:
+        return Pixel(self.led_position)
 
 
 layout = [
-    (3, 17),
-    (7, 27),
-    (11, 23),
-    (2, 22),
-    (6, 24),
-    (10, 5),
-    (1, 6),
-    (5, 12),
-    (9, 13),
-    (0, 20),
-    (4, 16),
-    (8, 26),
+    KeyCfg(1, 3, 17),
+    KeyCfg(2, 7, 27),
+    KeyCfg(3, 11, 23),
+    KeyCfg(4, 2, 22),
+    KeyCfg(5, 6, 24),
+    KeyCfg(6, 10, 5),
+    KeyCfg(7, 1, 6),
+    KeyCfg(8, 5, 12),
+    KeyCfg(9, 9, 13),
+    KeyCfg(10, 0, 20),
+    KeyCfg(11, 4, 16),
+    KeyCfg(12, 8, 26),
 ]
 
 
 class Configuration:
     def __init__(self):
         self.layout = layout
-        self.gadget = HidGadget("/dev/hidg1")
-        self.reports = [BitmapReport(self.gadget, 32, [(0, 248, 1)])]
-
-        self.ledmap = [l for (l, _) in self.layout]
-        self.keymap = [Key(i, pin)
-                for (i, (_, pin))
-                in enumerate(self.layout)]
+        self.lights = Lights([k.pixel for k in layout])
+        self.keys = [k.key for k in self.keys]
