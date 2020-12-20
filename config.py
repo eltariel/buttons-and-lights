@@ -5,10 +5,18 @@ Options:
     layout: list of (led position, gpio pin) for each key. io_mapping[n] represents the nth key.
 """
 from dataclasses import dataclass
-from functools import lru_cache
 
 from hardware.keys import Key
 from hardware.leds import Pixel, Lights
+
+from mqtt.mqtt_config import MqttConfig
+
+import socket
+import json
+
+
+HOST_NAME = socket.gethostname()
+mc = MqttConfig.read("njak-mqtt.json")
 
 
 @dataclass
@@ -17,12 +25,10 @@ class KeyCfg:
     led_position: int
     key_pin: int
 
-    @lru_cache
     @property
     def key(self) -> Key:
         return Key(self.key_number, self.key_pin)
 
-    @lru_cache
     @property
     def pixel(self) -> Pixel:
         return Pixel(self.led_position)
@@ -48,4 +54,4 @@ class Configuration:
     def __init__(self):
         self.layout = layout
         self.lights = Lights([k.pixel for k in layout])
-        self.keys = [k.key for k in self.keys]
+        self.keys = [k.key for k in self.layout]

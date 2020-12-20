@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 import time
+import math
 from typing import List
 
 import colours
@@ -8,27 +9,15 @@ from hardware import leds
 
 import json
 import logging
-import socket
 import paho.mqtt.client as mqtt
 
 from dataclasses import asdict, astuple, is_dataclass
 
-from config import Configuration
-from hass.mqtt_light import RGBColor, LightState, MqttLight
+from config import Configuration, HOST_NAME, mc
+from hass.mqtt_light import MqttLight, LightState, RGBColor
 from hass.mqtt_trigger import MqttTrigger
 from mqtt.mqtt_config import MqttConfig
 
-HOST_NAME = socket.gethostname()
-
-
-class DataclassJSONEncoder(json.JSONEncoder):
-  def default(self, o):
-    if is_dataclass(o):
-      return asdict(o)
-    return super().default(o)
-
-
-mc = MqttConfig.read("njak-mqtt.json")
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -41,7 +30,7 @@ def on_message(client, userdata, msg):
 
 
 mqttc = mqtt.Client(mc.client_id)
-mqttc.enable_logger()
+#mqttc.enable_logger()
 mqttc.on_connect = on_connect
 mqttc.on_message = on_message
 
@@ -60,15 +49,13 @@ class Discovery:
 
 
 class LedKey:
-  def __init__(self, key, pixel, light, triggers):
+  def __init__(self, key, light, triggers):
     self._log = logging.getLogger(type(self).__name__)
     self._key = key
-    self._pixel = pixel
     self._light = light
     self._triggers = {t.trigger_type: t for t in triggers}
     
     self._key.add_handler(self._handle_key)
-    self._light.add_listener(self._handle_light)
     self._light.state = LightState(True, 128, RGBColor(0, 0, 0))
 
     self._light.listen()
@@ -78,17 +65,6 @@ class LedKey:
 
   def set_color(self, r, g, b):
     self._light.set_color(r, g, b)
-
-  def _handle_light(self, light: MqttLight):
-    state = light.state
-
-    br = state.brightness >> 3 # TODO: Make this stay on for low values
-    r, g, b = astuple(state.color)
-
-    if state.on:
-      self._pixel.set(r, g, b, br)
-    else:
-      self._pixel.turn_off()
 
   def _handle_key(self, button, key):
     trigger = "button_short_release"
@@ -115,23 +91,27 @@ class Njak:
     for key in self.keys:
       pixel = self.lights.get_pixel(key.num)
 
-      light = MqttLight(key.num, mqttc)
+      light = MqttLight(key.num, pixel, mqttc)
       triggers: List[MqttTrigger] = [MqttTrigger(key.num, t, mqttc) for t in Discovery.trigger_types]
 
       for d in [light] + triggers:
         d.publish()
 
-      self.mqtt_keys += [LedKey(key, pixel, light, triggers)]
+      self.mqtt_keys += [LedKey(key, light, triggers)]
 
     self.cycle = colours.ColourCycler(1000, 12, 12)
+    self.loop_ctr = 0
 
   def loop(self):
     time.sleep(0.01)
     for (i, (r, g, b)) in enumerate(self.cycle.get_step()):
       self.mqtt_keys[i].set_color(r, g, b)
-      #self.lights.set_pixel(i, r, g, b)
+      if not self.loop_ctr:
+        self.mqtt_keys[i].publish_state()
     self.lights.show()
     self.cycle.next_step()
+
+    self.loop_ctr = (self.loop_ctr + 1) % 100
 
 
 if __name__ == '__main__':

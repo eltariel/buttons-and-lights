@@ -3,7 +3,7 @@ import logging
 
 import paho.mqtt.client as mqtt
 from mqtt.mqtt_config import MAC_ADDR
-from njak import mc, HOST_NAME
+from config import mc, HOST_NAME
 
 
 class Discoverable:

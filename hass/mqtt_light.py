@@ -1,8 +1,9 @@
+import math
 import json
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, astuple
 
 from hass.discoverable import Discoverable, HOMEASSISTANT_DEV_INFO
-from njak import HOST_NAME, mc
+from config import HOST_NAME, mc
 
 
 @dataclass
@@ -22,18 +23,19 @@ class LightState:
     return json.dumps({
         "brightness": self.brightness,
         "color": asdict(self.color),
-        "state": "OFF" if not self.on else "ON",
+        "state": "ON" if self.on else "OFF",
       })
 
 
 class MqttLight(Discoverable):
-  def __init__(self, button, mqtt_client):
+  def __init__(self, button, light, mqtt_client):
     super().__init__(mqtt_client)
     self._button = button
+    self._light = light
     self._btn_str = f"{button:02}"
     self._light_topic = self._topic(f"light/{self._btn_str}")
     self._state = LightState(False, 0, RGBColor(0, 0, 0))
-    self._listeners = []
+    self._subscribed = False
 
   @property
   def state_topic(self):
@@ -51,11 +53,8 @@ class MqttLight(Discoverable):
   def state(self, value: LightState):
     if self._state != value:
       self._state = value
-      for l in self._listeners:
-        l(self)
-
-  def set(self, on: bool, brightness: int, color: RGBColor):
-    self.state = LightState(on, brightness, color)
+      self._update_light()
+      # self.publish_state()
 
   def set_color(self, r, g, b):
     self.state = LightState(self.state.on, self.state.brightness, RGBColor(r, g, b))
@@ -85,15 +84,14 @@ class MqttLight(Discoverable):
   def publish_state(self):
     p = self.state.to_payload()
     self._log.debug(f"  {self.state_topic} STATE --> {p}")
-    self._client.publish(self.state_topic, self._state.to_payload())
-
-  def add_listener(self, listener):
-    self._log.debug(f"Adding listener: {listener}")
-    self._listeners += [listener]
+    self._client.publish(self.state_topic, self.state.to_payload())
 
   def listen(self):
     self._log.debug(f"Listening on {self.listen_topic}")
     self._client.message_callback_add(self.listen_topic, self._handle_message)
+    if not self._subscribed:
+        self._client.subscribe(self.listen_topic)
+        self._subscribed = True
 
   def _handle_message(self, client, userdata, message):
     """
@@ -111,12 +109,12 @@ class MqttLight(Discoverable):
     p = json.loads(message.payload)
     self._log.debug(f"Light command for LED {self._btn_str}: {p}")
 
-    br = p.get("brightness", self._state.brightness)
+    br = p.get("brightness", self.state.brightness)
 
     st = p.get("state")
-    on = st == "ON" if st is not None else self._state.on
+    on = st == "ON" if st is not None else self.state.on
 
-    curr_color = self._state.color
+    curr_color = self.state.color
     c = p.get("color")
     if c is not None:
       r = c.get("r", curr_color.r)
@@ -127,3 +125,13 @@ class MqttLight(Discoverable):
       color = curr_color
 
     self.state = LightState(on, br, color)
+
+  def _update_light(self):
+    # TODO: move this calculation into the pixel class
+    br = min(31, math.ceil(self.state.brightness / 8))
+    r, g, b = astuple(self.state.color)
+
+    if self.state.on:
+      self._light.set(r, g, b, br)
+    else:
+      self._light.turn_off()

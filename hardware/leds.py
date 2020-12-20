@@ -102,7 +102,7 @@ class Lights:
         self.spi.max_speed_hz = 1000000
 
         self.pixels_logical = pixels
-        self.pixels_physical = sorted(pixels, key=lambda x: x.n)
+        self.pixels_physical = sorted(pixels, key=lambda x: x.pin)
 
         atexit.register(self._on_exit)
 

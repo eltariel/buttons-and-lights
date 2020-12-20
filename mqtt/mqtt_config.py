@@ -2,7 +2,7 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
-from njak import DataclassJSONEncoder
+from util.dataclass_json_encoder import DataclassJSONEncoder
 
 with open("/sys/class/net/wlan0/address") as f:
   MAC_ADDR = f.read().strip().replace(":", "")
