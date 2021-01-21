@@ -3,10 +3,25 @@ Python interface for GPIO keypads and APA102 RGB LEDs. Inspired by the Pimoroni 
 
 
 # Requirements
+## Hardware prep
+If you're running a raspi, add the following in your `/boot/config.txt` if they're not there, and reboot:
+
+```
+dtparam=spi=on
+dtoverlay=swc2
+```
+
+## Software deps
 - Python 3
 - SpiDev
 - gpiozero
+- RPi.GPIO
 
+These can be installed on Raspberry Pi OS like this:
+
+```bash
+sudo apt install python3-spidev python3-gpiozero python3-rpi.gpio
+```
 
 # Setup
 ## One-off
