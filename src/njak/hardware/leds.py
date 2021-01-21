@@ -10,13 +10,13 @@ from spidev import SpiDev
 START_OF_FRAME = 0xE0
 MAX_BRIGHTNESS = 0x1F
 
+
 class Pixel:
     """
     An individual LED from a chain of APA102 LEDs
     """
 
     PIXEL_OFF = bytearray([START_OF_FRAME, 0, 0, 0])
-
 
     def __init__(self, pin, brightness=0x00):
         """
@@ -146,7 +146,7 @@ class Lights:
         Blank all LEDs.
         """
         for p in self.pixels_logical:
-            #p.set(0, 0, 0)
+            # p.set(0, 0, 0)
             p.turn_off()
 
     def show(self):

@@ -60,7 +60,7 @@ class Keypad:
         self.layers = {}
 
         self.keys[0].add_handler(self._layer_button_handler)
-        for i in range(1,12):
+        for i in range(1, 12):
             self.keys[i].add_handler(self._key_handler)
 
     def add_layer(self, layer, handlers):
@@ -77,7 +77,9 @@ class Keypad:
             print("entering layer select mode")
         else:
             self._in_layer_select = False
-            print("exiting layer select mode, layer is now {}".format(self.current_layer))
+            print(
+                "exiting layer select mode, layer is now {}".format(self.current_layer)
+            )
 
     def _key_handler(self, button, key):
         if self._in_layer_select:
